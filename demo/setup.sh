@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# ML4W Dotfiles Bootstrap Script
+# xCloud Dotfiles Bootstrap Script
 set -e
 
 # --- Colors ---
@@ -16,7 +16,7 @@ success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-info "Starting ML4W Dotfiles Setup..."
+info "Starting xCloud Dotfiles Setup..."
 
 # 1. Distro Detection by Binary (as requested)
 if command -v pacman &> /dev/null; then
@@ -36,14 +36,14 @@ else
 fi
 
 # 2. Prepare Temporary Folder
-TEMP_DIR=$(mktemp -d -t ml4w-installer-XXXXXX)
-info "Cloning ML4W Dotfiles Installer into $TEMP_DIR..."
+TEMP_DIR=$(mktemp -d -t xcloud-installer-XXXXXX)
+info "Cloning xCloud Dotfiles Installer into $TEMP_DIR..."
 
 # 3. Clone and Install the App
-git clone --depth=1 https://github.com/mylinuxforwork/ml4w-dotfiles-installer.git "$TEMP_DIR"
+git clone --depth=1 https://github.com/xc0sh/xcloud-dotfiles-installer.git "$TEMP_DIR"
 cd "$TEMP_DIR"
 
-info "Installing ML4W Dotfiles Installer to ~/.local/bin..."
+info "Installing xCloud Dotfiles Installer to ~/.local/bin..."
 make install
 
 # 4. Ensure ~/.local/bin is in PATH for this session
@@ -60,7 +60,7 @@ fi
 
 # 5. Execute the Installer
 info "Launching the Dotfiles Installer..."
-ml4w-dotfiles-installer --install https://raw.githubusercontent.com/mylinuxforwork/dotfiles/main/hyprland-dotfiles.dotinst
+xcloud-dotfiles-installer --install https://raw.githubusercontent.com/xc0sh/dotfiles/main/hyprland-dotfiles.dotinst
 
 # Cleanup
 rm -rf "$TEMP_DIR"
