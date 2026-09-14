@@ -19,7 +19,7 @@ source "$LIB_DIR/utils.sh"
 # Default settings
 DOTFILES_DIR="$HOME/.mydotfiles"
 TEST_MODE=false
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="0.2.8"
 
 # --- Check for Installer Config Folder ---
 INSTALLER_CONFIG="$HOME/.config/xcloud-dotfiles-installer"
