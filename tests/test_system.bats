@@ -58,6 +58,64 @@ stub() {
     [ "$output" = "unknown" ]
 }
 
+@test "get_aur_helper prefers paru over yay when both are present" {
+    stub paru yay
+    run env PATH="$FAKE_BIN" /usr/bin/bash -c "source '$BATS_TEST_DIRNAME/../lib/helpers.sh'; get_aur_helper"
+    [ "$status" -eq 0 ]
+    [ "$output" = "paru" ]
+}
+
+@test "get_aur_helper reports empty when neither paru nor yay is present" {
+    run env PATH="$FAKE_BIN" /usr/bin/bash -c "source '$BATS_TEST_DIRNAME/../lib/helpers.sh'; get_aur_helper"
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+}
+
+@test "install_package doesn't touch the AUR helper when pacman succeeds" {
+    printf '#!/usr/bin/bash\nexec "$@"\n' > "$FAKE_BIN/sudo"
+    chmod +x "$FAKE_BIN/sudo"
+    printf '#!/usr/bin/bash\nexit 0\n' > "$FAKE_BIN/pacman"
+    chmod +x "$FAKE_BIN/pacman"
+    printf '#!/usr/bin/bash\necho "$@" > "%s/paru-called-with"\nexit 0\n' "$BATS_TEST_TMPDIR" > "$FAKE_BIN/paru"
+    chmod +x "$FAKE_BIN/paru"
+
+    run env PATH="$FAKE_BIN" /usr/bin/bash -c "source '$BATS_TEST_DIRNAME/../lib/colors.sh'; source '$BATS_TEST_DIRNAME/../lib/helpers.sh'; install_package jq"
+    [ "$status" -eq 0 ]
+    [ ! -f "$BATS_TEST_TMPDIR/paru-called-with" ]
+}
+
+@test "install_package falls back to the AUR helper when pacman can't find the package" {
+    # Absolute-path shebangs, not `#!/usr/bin/env bash`: these stubs (unlike
+    # stub()'s exit-0 ones above, only ever probed via `command -v`) are
+    # actually executed, and `env` would look up `bash` using the very
+    # PATH we've overridden to just $FAKE_BIN.
+    #
+    # sudo just execs through -- this stub environment isn't testing
+    # privilege elevation, only the pacman-fails -> AUR-helper-tried path.
+    printf '#!/usr/bin/bash\nexec "$@"\n' > "$FAKE_BIN/sudo"
+    chmod +x "$FAKE_BIN/sudo"
+    # Real pacman exits non-zero for a package not in any configured repo.
+    printf '#!/usr/bin/bash\nexit 1\n' > "$FAKE_BIN/pacman"
+    chmod +x "$FAKE_BIN/pacman"
+    printf '#!/usr/bin/bash\necho "$@" > "%s/paru-called-with"\nexit 0\n' "$BATS_TEST_TMPDIR" > "$FAKE_BIN/paru"
+    chmod +x "$FAKE_BIN/paru"
+
+    run env PATH="$FAKE_BIN" /usr/bin/bash -c "source '$BATS_TEST_DIRNAME/../lib/colors.sh'; source '$BATS_TEST_DIRNAME/../lib/helpers.sh'; install_package hadolint-bin"
+    [ "$status" -eq 0 ]
+    [ "$(cat "$BATS_TEST_TMPDIR/paru-called-with")" = "-S --needed --noconfirm hadolint-bin" ]
+}
+
+@test "install_package fails clearly when pacman can't find the package and no AUR helper exists" {
+    printf '#!/usr/bin/bash\nexec "$@"\n' > "$FAKE_BIN/sudo"
+    chmod +x "$FAKE_BIN/sudo"
+    printf '#!/usr/bin/bash\nexit 1\n' > "$FAKE_BIN/pacman"
+    chmod +x "$FAKE_BIN/pacman"
+
+    run env PATH="$FAKE_BIN" /usr/bin/bash -c "source '$BATS_TEST_DIRNAME/../lib/colors.sh'; source '$BATS_TEST_DIRNAME/../lib/helpers.sh'; install_package hadolint-bin"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"no AUR helper"* ]]
+}
+
 @test "copy_with_blacklist copies normal files and preserves blacklisted ones" {
     src="$BATS_TEST_TMPDIR/src"
     dst="$BATS_TEST_TMPDIR/dst"
